@@ -2,12 +2,12 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NEON STRIKER - 霓虹突击</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; height: 100dvh; font-family: 'Courier New', monospace; touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-canvas { display: block; image-rendering: pixelated; touch-action: none; }
+body { background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Courier New', monospace; }
+canvas { display: block; image-rendering: pixelated; }
 #ui-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   pointer-events: none; z-index: 10;
@@ -160,87 +160,11 @@ canvas { display: block; image-rendering: pixelated; touch-action: none; }
   background: none; border: none; font-family: 'Courier New', monospace;
 }
 .mod-close:hover { text-shadow: 0 0 10px #f44; }
-
-/* Mobile controls */
-#mobile-controls {
-  display: none; position: fixed; bottom: 0; left: 0; right: 0;
-  z-index: 18; pointer-events: none;
-  padding: 12px 16px env(safe-area-inset-bottom, 12px);
-}
-#mobile-controls .mc-row {
-  display: flex; justify-content: space-between; align-items: center;
-}
-.mc-btn {
-  pointer-events: auto; width: 64px; height: 64px;
-  border-radius: 50%; border: 2px solid #0ff;
-  background: rgba(0, 255, 255, 0.08);
-  color: #0ff; font-size: 11px; font-family: 'Courier New', monospace;
-  display: flex; flex-direction: column; justify-content: center; align-items: center;
-  cursor: pointer; transition: background 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-.mc-btn:active { background: rgba(0, 255, 255, 0.3); }
-.mc-btn.mc-bomb { border-color: #f80; color: #f80; background: rgba(255, 136, 0, 0.08); }
-.mc-btn.mc-bomb:active { background: rgba(255, 136, 0, 0.3); }
-.mc-btn.mc-pause { border-color: #888; color: #888; background: rgba(136, 136, 136, 0.08); width: 48px; height: 48px; font-size: 10px; }
-.mc-btn.mc-pause:active { background: rgba(136, 136, 136, 0.3); }
-.mc-btn .mc-icon { font-size: 20px; line-height: 1; }
-.mc-btn .mc-label { font-size: 9px; margin-top: 2px; opacity: 0.7; }
-.mc-btn .mc-count { font-size: 10px; margin-top: 1px; color: #fd0; }
-
-/* Responsive */
-@media (max-width: 768px) {
-  .menu-title { font-size: 36px !important; letter-spacing: 4px; }
-  .menu-subtitle { font-size: 14px !important; letter-spacing: 6px; margin-bottom: 30px; }
-  .btn { padding: 12px 32px; font-size: 16px; margin: 6px; }
-  .btn-small { padding: 8px 20px; font-size: 12px; }
-  .controls-hint { font-size: 10px; margin-top: 20px; }
-  .shop-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
-  .select-grid { flex-direction: column; align-items: center; gap: 12px; }
-  .ship-card { width: 90vw; max-width: 320px; padding: 14px; }
-  .score-display { font-size: 22px; margin-bottom: 20px; }
-  .boss-hp-bar { width: 80vw; height: 14px; top: 50px; }
-  .boss-name { top: 32px; font-size: 12px; }
-  #mod-panel { width: 100%; }
-  #mobile-controls { display: block; }
-  .hud-text { font-size: 14px; }
-}
-
-@media (max-width: 400px) {
-  .menu-title { font-size: 28px !important; }
-  .btn { padding: 10px 24px; font-size: 14px; }
-  .shop-grid { grid-template-columns: 1fr !important; }
-  .mc-btn { width: 56px; height: 56px; }
-}
 </style>
 </head>
 <body>
 
 <canvas id="game"></canvas>
-
-<!-- Mobile Controls -->
-<div id="mobile-controls">
-  <div class="mc-row">
-    <button class="mc-btn mc-pause" ontouchstart="mobilePause()" onmousedown="mobilePause()">
-      <span class="mc-icon">⏸</span>
-    </button>
-    <button class="mc-btn mc-pause" ontouchstart="toggleModPanel()" onmousedown="toggleModPanel()" style="margin-left:8px;">
-      <span class="mc-icon">⚙</span>
-      <span class="mc-label">参数</span>
-    </button>
-    <div style="display:flex;gap:16px;">
-      <button class="mc-btn" ontouchstart="mobileShield(true)" ontouchend="mobileShield(false)" onmousedown="mobileShield(true)" onmouseup="mobileShield(false)">
-        <span class="mc-icon">🛡</span>
-        <span class="mc-label">护盾</span>
-      </button>
-      <button class="mc-btn mc-bomb" ontouchstart="mobileBomb()" onmousedown="mobileBomb()">
-        <span class="mc-icon">💥</span>
-        <span class="mc-label">大招</span>
-        <span class="mc-count" id="mobile-bomb-count">3</span>
-      </button>
-    </div>
-  </div>
-</div>
 
 <!-- Menu Screen -->
 <div id="menu-screen">
@@ -2059,7 +1983,7 @@ function updateLevel(dt) {
 
   // Check if level is complete (all waves spawned, boss defeated)
   const allSpawned = levelWavesSpawned.length >= level.waves.length;
-  if (allSpawned && !bossActive && !boss && enemies.length === 0 && !levelComplete) {
+  if (allSpawned && !bossActive && enemies.length === 0 && !levelComplete) {
     levelComplete = true;
     if (currentLevel < LEVELS.length - 1) {
       showLevelBanner(currentLevel + 1, () => {
@@ -2465,8 +2389,6 @@ function startGame() {
   initPlayer();
   initLevel(0);
   initBackground();
-  const mbc = document.getElementById('mobile-bomb-count');
-  if (mbc) mbc.textContent = player.bombCount;
 
   // Show level banner
   const banner = document.getElementById('level-banner');
@@ -2676,37 +2598,6 @@ function toggleSound() {
   const btn = document.getElementById('sound-btn');
   btn.textContent = SFX.muted ? '🔇 音效关闭' : '🔊 音效开启';
 }
-
-// ==================== MOBILE CONTROLS ====================
-function mobilePause() {
-  if (gameState === 'playing') { gameState = 'paused'; }
-  else if (gameState === 'paused') { gameState = 'playing'; }
-}
-
-let mobileShieldHeld = false;
-function mobileShield(down) {
-  mobileShieldHeld = down;
-  if (down && gameState === 'playing') {
-    keys['shift'] = true;
-  } else {
-    keys['shift'] = false;
-  }
-}
-
-function mobileBomb() {
-  if (gameState === 'playing') useBomb();
-}
-
-// Update mobile bomb count display
-const origUseBomb = useBomb;
-useBomb = function() {
-  origUseBomb();
-  const el = document.getElementById('mobile-bomb-count');
-  if (el) el.textContent = player.bombCount;
-};
-
-// Prevent default touch behaviors on mobile
-document.addEventListener('touchmove', e => { e.preventDefault(); }, { passive: false });
 
 // ==================== INIT ====================
 initBackground();
