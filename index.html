@@ -212,6 +212,61 @@ canvas { display: block; image-rendering: pixelated; touch-action: none; }
   .shop-grid { grid-template-columns: 1fr !important; }
   .mc-btn { width: 56px; height: 56px; }
 }
+
+/* Difficulty screen */
+#difficulty-screen {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  z-index: 20; pointer-events: auto;
+}
+.diff-cards { display: flex; gap: 20px; margin: 30px 0; flex-wrap: wrap; justify-content: center; }
+.diff-card {
+  border: 2px solid #555; padding: 24px 28px; width: 200px; text-align: center;
+  cursor: pointer; transition: all 0.3s; pointer-events: auto;
+  background: rgba(0, 0, 0, 0.5); position: relative; overflow: hidden;
+}
+.diff-card:hover { transform: scale(1.05); }
+.diff-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.diff-card .diff-name { font-size: 22px; font-weight: bold; margin-bottom: 8px; letter-spacing: 4px; }
+.diff-card .diff-desc { font-size: 11px; color: #888; line-height: 1.6; margin-bottom: 10px; }
+.diff-card .diff-mult { font-size: 10px; color: #666; line-height: 1.8; }
+.diff-easy { border-color: #0f0; }
+.diff-easy::before { background: #0f0; box-shadow: 0 0 15px #0f0; }
+.diff-easy:hover { background: rgba(0, 255, 0, 0.08); box-shadow: 0 0 25px rgba(0, 255, 0, 0.3); }
+.diff-easy .diff-name { color: #0f0; text-shadow: 0 0 10px #0f0; }
+.diff-hard { border-color: #f80; }
+.diff-hard::before { background: #f80; box-shadow: 0 0 15px #f80; }
+.diff-hard:hover { background: rgba(255, 136, 0, 0.08); box-shadow: 0 0 25px rgba(255, 136, 0, 0.3); }
+.diff-hard .diff-name { color: #f80; text-shadow: 0 0 10px #f80; }
+.diff-hell { border-color: #f00; }
+.diff-hell::before { background: #f00; box-shadow: 0 0 15px #f00; }
+.diff-hell:hover { background: rgba(255, 0, 0, 0.08); box-shadow: 0 0 25px rgba(255, 0, 0, 0.3); }
+.diff-hell .diff-name { color: #f00; text-shadow: 0 0 10px #f00; }
+
+/* Boss warning overlay */
+.boss-warning {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  z-index: 25; pointer-events: none;
+  display: flex; justify-content: center; align-items: center;
+  animation: bossWarnPulse 0.5s ease-in-out 3;
+}
+.boss-warning h1 {
+  font-size: 60px; color: #f00; letter-spacing: 12px;
+  text-shadow: 0 0 30px #f00, 0 0 60px #f00, 0 0 90px #f00;
+  animation: bossWarnShake 0.1s linear infinite;
+}
+@keyframes bossWarnPulse {
+  0%, 100% { background: transparent; }
+  50% { background: rgba(255, 0, 0, 0.08); }
+}
+@keyframes bossWarnShake {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-3px, 2px); }
+  50% { transform: translate(3px, -2px); }
+  75% { transform: translate(-2px, -3px); }
+}
 </style>
 </head>
 <body>
@@ -246,7 +301,7 @@ canvas { display: block; image-rendering: pixelated; touch-action: none; }
 <div id="menu-screen">
   <div class="menu-title">NEON STRIKER</div>
   <div class="menu-subtitle">霓 虹 突 击</div>
-  <button class="btn" onclick="startGame()">开 始 游 戏</button>
+  <button class="btn" onclick="showDifficulty()">开 始 游 戏</button>
   <button class="btn" onclick="showSelect()">选 择 战 机</button>
   <button class="btn" onclick="showShop()">强 化 升 级</button>
   <div class="controls-hint">
@@ -255,6 +310,30 @@ canvas { display: block; image-rendering: pixelated; touch-action: none; }
     P 暂停 &nbsp;|&nbsp; C 控制面板
   </div>
   <button class="btn btn-small" style="position:fixed;bottom:20px;right:20px;z-index:30;" onclick="toggleSound()" id="sound-btn">🔊 音效开启</button>
+</div>
+
+<!-- Difficulty Screen -->
+<div id="difficulty-screen" class="hidden">
+  <div class="menu-title" style="font-size:40px;">选择难度</div>
+  <div class="menu-subtitle" style="margin-bottom:20px;">DIFFICULTY</div>
+  <div class="diff-cards">
+    <div class="diff-card diff-easy" onclick="selectDifficulty(0)">
+      <div class="diff-name">简 单</div>
+      <div class="diff-desc">适合新手入门<br>敌人较弱，掉落丰富</div>
+      <div class="diff-mult">敌人血量 x0.6 | 速度 x0.7<br>掉落 x1.5 | 得分 x0.8</div>
+    </div>
+    <div class="diff-card diff-hard" onclick="selectDifficulty(1)">
+      <div class="diff-name">困 难</div>
+      <div class="diff-desc">标准战斗体验<br>均衡的挑战与回报</div>
+      <div class="diff-mult">敌人血量 x1.0 | 速度 x1.0<br>掉落 x1.0 | 得分 x1.0</div>
+    </div>
+    <div class="diff-card diff-hell" onclick="selectDifficulty(2)">
+      <div class="diff-name">地 狱</div>
+      <div class="diff-desc">极限挑战模式<br>弹幕密集，高分回报</div>
+      <div class="diff-mult">敌人血量 x1.8 | 速度 x1.5<br>掉落 x0.7 | 得分 x2.0</div>
+    </div>
+  </div>
+  <button class="btn btn-small" onclick="showScreen('menu-screen')">返 回</button>
 </div>
 
 <!-- Ship Select Screen -->
@@ -275,15 +354,17 @@ canvas { display: block; image-rendering: pixelated; touch-action: none; }
 <!-- Game Over Screen -->
 <div id="game-over-screen" class="hidden">
   <div class="menu-title" style="font-size:48px; color:#f44;">GAME OVER</div>
+  <div class="hud-text" id="go-diff" style="margin-bottom:10px;"></div>
   <div class="score-display">最终得分: <span id="final-score">0</span></div>
   <div class="hud-text">获得金币: <span id="earned-coins" style="color:#fd0;">0</span></div>
-  <button class="btn" onclick="startGame()">重新开始</button>
+  <button class="btn" onclick="showDifficulty()">重新开始</button>
   <button class="btn" onclick="backToMenu()">返回主菜单</button>
 </div>
 
 <!-- Victory Screen -->
 <div id="victory-screen" class="hidden">
   <div class="menu-title" style="font-size:48px; color:#0f0;">VICTORY</div>
+  <div class="hud-text" id="v-diff" style="margin-bottom:10px;"></div>
   <div class="score-display">最终得分: <span id="victory-score">0</span></div>
   <div class="hud-text">获得金币: <span id="victory-coins" style="color:#fd0;">0</span></div>
   <button class="btn" onclick="backToMenu()">返回主菜单</button>
@@ -419,6 +500,20 @@ window.addEventListener('resize', resizeCanvas);
 const PI = Math.PI;
 const TAU = PI * 2;
 const DEG = PI / 180;
+
+// ==================== DIFFICULTY ====================
+const DIFFICULTIES = [
+  { name: '简单', color: '#0f0', hpMult: 0.6, spdMult: 0.7, fireMult: 0.7, bossMult: 0.6, bulletSpdMult: 0.7, dropMult: 1.5, scoreMult: 0.8, extraBullets: 0 },
+  { name: '困难', color: '#f80', hpMult: 1.0, spdMult: 1.0, fireMult: 1.0, bossMult: 1.0, bulletSpdMult: 1.0, dropMult: 1.0, scoreMult: 1.0, extraBullets: 1 },
+  { name: '地狱', color: '#f00', hpMult: 1.8, spdMult: 1.5, fireMult: 1.6, bossMult: 2.0, bulletSpdMult: 1.4, dropMult: 0.7, scoreMult: 2.0, extraBullets: 3 }
+];
+let difficulty = 1; // default: hard
+
+function selectDifficulty(idx) {
+  difficulty = idx;
+  SFX.menuClick();
+  startGame();
+}
 
 // ==================== GAME STATE ====================
 let gameState = 'menu'; // menu, playing, paused, gameover, victory
@@ -1020,6 +1115,17 @@ function spawnExplosion(x, y, count, color, speed = 3, size = 3) {
   }
 }
 
+function spawnBulletImpact(x, y, color, size) {
+  // Spark burst
+  for (let i = 0; i < 6; i++) {
+    const a = rand(0, TAU);
+    const s = rand(1, 3);
+    spawnParticle(x, y, Math.cos(a) * s, Math.sin(a) * s, rand(0.15, 0.35), rand(1, 2.5), color, 10);
+  }
+  // Core flash
+  spawnParticle(x, y, 0, 0, 0.1, size * 1.5, '#fff', 20);
+}
+
 function spawnRing(x, y, count, color, speed = 2) {
   for (let i = 0; i < count; i++) {
     const a = (i / count) * TAU;
@@ -1063,7 +1169,7 @@ const playerBullets = [];
 const enemyBullets = [];
 
 function spawnPlayerBullet(x, y, vx, vy, damage, size, color, type = 'normal', pierce = 0) {
-  playerBullets.push({ x, y, vx, vy, damage, size, color, type, pierce, age: 0 });
+  playerBullets.push({ x, y, vx, vy, damage, size, color, type, pierce, age: 0, trail: [] });
 }
 
 function spawnEnemyBullet(x, y, vx, vy, size = 4, color = '#f44') {
@@ -1078,6 +1184,9 @@ function spawnEnemyBulletAimed(x, y, speed, size, color) {
 function updateBullets(dt) {
   for (let i = playerBullets.length - 1; i >= 0; i--) {
     const b = playerBullets[i];
+    // Record trail
+    if (b.trail.length > 8) b.trail.shift();
+    b.trail.push({ x: b.x, y: b.y });
     b.x += b.vx * dt * 60;
     b.y += b.vy * dt * 60;
     b.age += dt;
@@ -1093,40 +1202,154 @@ function updateBullets(dt) {
 }
 
 function drawBullets() {
-  // Player bullets
+  const shipName = SHIPS[saveData.selectedShip].name;
+
+  // Player bullets with trails
   for (const b of playerBullets) {
     ctx.save();
-    ctx.shadowBlur = 12;
+
+    // Draw trail
+    if (b.trail.length > 1) {
+      for (let i = 0; i < b.trail.length - 1; i++) {
+        const alpha = (i / b.trail.length) * 0.5;
+        const width = (i / b.trail.length) * b.size * 0.8;
+        ctx.strokeStyle = b.color;
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = width;
+        ctx.beginPath();
+        ctx.moveTo(b.trail[i].x, b.trail[i].y);
+        ctx.lineTo(b.trail[i + 1].x, b.trail[i + 1].y);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.shadowBlur = 15;
     ctx.shadowColor = b.color;
     ctx.fillStyle = b.color;
-    if (b.type === 'laser') {
-      ctx.fillRect(b.x - 1.5, b.y - 12, 3, 24);
-    } else if (b.type === 'missile') {
-      ctx.beginPath();
-      ctx.moveTo(b.x, b.y - 8);
-      ctx.lineTo(b.x - 4, b.y + 4);
-      ctx.lineTo(b.x + 4, b.y + 4);
-      ctx.fill();
-    } else {
+
+    if (shipName === '幻影号') {
+      // Plasma bolts - glowing circles with core
       ctx.beginPath();
       ctx.arc(b.x, b.y, b.size, 0, TAU);
       ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.size * 0.4, 0, TAU);
+      ctx.fill();
+
+    } else if (shipName === '烈焰号') {
+      // Fire bullets - flickering fire shape
+      const flicker = Math.sin(b.age * 30) * 2;
+      ctx.beginPath();
+      ctx.moveTo(b.x, b.y - b.size - flicker);
+      ctx.quadraticCurveTo(b.x + b.size, b.y, b.x, b.y + b.size);
+      ctx.quadraticCurveTo(b.x - b.size, b.y, b.x, b.y - b.size - flicker);
+      ctx.fill();
+      ctx.fillStyle = '#ff0';
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.size * 0.3, 0, TAU);
+      ctx.fill();
+
+    } else if (shipName === '寒冰号') {
+      // Ice crystals - diamond shape with frost
+      if (b.type === 'laser') {
+        // Laser beam with glow
+        ctx.fillRect(b.x - 2, b.y - 14, 4, 28);
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = 0.6;
+        ctx.fillRect(b.x - 1, b.y - 14, 2, 28);
+        ctx.globalAlpha = 1;
+      } else {
+        ctx.translate(b.x, b.y);
+        ctx.rotate(b.age * 5);
+        ctx.beginPath();
+        ctx.moveTo(0, -b.size);
+        ctx.lineTo(b.size * 0.6, 0);
+        ctx.lineTo(0, b.size);
+        ctx.lineTo(-b.size * 0.6, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#def';
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(0, 0, b.size * 0.25, 0, TAU);
+        ctx.fill();
+      }
+
+    } else if (shipName === '雷霆号') {
+      // Lightning bolts - zigzag shape
+      if (b.pierce > 0) {
+        // Piercing lightning - larger with arcs
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.size * 1.2, 0, TAU);
+        ctx.fill();
+        // Electric arcs
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.shadowBlur = 0;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(b.x, b.y);
+          ctx.lineTo(b.x + rand(-12, 12), b.y + rand(-12, 12));
+          ctx.stroke();
+        }
+      } else {
+        // Small lightning bolt
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y - b.size);
+        ctx.lineTo(b.x + b.size * 0.5, b.y - b.size * 0.3);
+        ctx.lineTo(b.x - b.size * 0.3, b.y);
+        ctx.lineTo(b.x + b.size * 0.4, b.y + b.size * 0.3);
+        ctx.lineTo(b.x, b.y + b.size);
+        ctx.lineTo(b.x - b.size * 0.5, b.y + b.size * 0.3);
+        ctx.lineTo(b.x + b.size * 0.3, b.y);
+        ctx.lineTo(b.x - b.size * 0.4, b.y - b.size * 0.3);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
+
     ctx.restore();
   }
-  // Enemy bullets
+
+  // Enemy bullets with enhanced visuals
   for (const b of enemyBullets) {
     ctx.save();
     ctx.shadowBlur = 10;
     ctx.shadowColor = b.color;
     ctx.fillStyle = b.color;
+
+    // Rotating diamond for enemy bullets
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.age * 4);
     ctx.beginPath();
-    ctx.arc(b.x, b.y, b.size, 0, TAU);
+    ctx.moveTo(0, -b.size);
+    ctx.lineTo(b.size * 0.6, 0);
+    ctx.lineTo(0, b.size);
+    ctx.lineTo(-b.size * 0.6, 0);
+    ctx.closePath();
     ctx.fill();
+
+    // Inner glow
     ctx.fillStyle = '#fff';
+    ctx.shadowBlur = 0;
     ctx.beginPath();
-    ctx.arc(b.x, b.y, b.size * 0.4, 0, TAU);
+    ctx.arc(0, 0, b.size * 0.3, 0, TAU);
     ctx.fill();
+
+    // Boss bullets get an outer energy ring
+    if (b.size >= 4) {
+      ctx.strokeStyle = b.color;
+      ctx.globalAlpha = 0.4 + Math.sin(b.age * 10) * 0.2;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(0, 0, b.size * 1.5, 0, TAU);
+      ctx.stroke();
+    }
+
     ctx.restore();
   }
 }
@@ -1244,10 +1467,23 @@ function updatePlayer(dt) {
     if (player.comboTimer <= 0) player.combo = 0;
   }
 
-  // Engine trail
-  if (Math.random() < 0.6) {
-    const ship = SHIPS[saveData.selectedShip];
-    spawnParticle(player.x + rand(-6, 6), player.y + 16, rand(-0.3, 0.3), rand(2, 4), 0.3, rand(2, 4), ship.trailColor || '#088', 8);
+  // Engine trail - ship-specific
+  const ship = SHIPS[saveData.selectedShip];
+  if (Math.random() < 0.7) {
+    const tx = player.x + rand(-5, 5);
+    const ty = player.y + 14;
+    if (ship.name === '烈焰号') {
+      spawnParticle(tx, ty, rand(-0.5, 0.5), rand(2, 5), 0.25, rand(2, 5), ['#f80', '#ff0', '#f44'][randInt(0, 2)], 12);
+      if (Math.random() < 0.3) spawnParticle(tx + rand(-8, 8), ty, rand(-1, 1), rand(1, 3), 0.4, rand(1, 2), '#f80', 6);
+    } else if (ship.name === '寒冰号') {
+      spawnParticle(tx, ty, rand(-0.3, 0.3), rand(1.5, 3.5), 0.35, rand(2, 4), ['#4cf', '#8ef', '#fff'][randInt(0, 2)], 8);
+      if (Math.random() < 0.2) spawnParticle(player.x + rand(-20, 20), player.y + rand(-10, 10), rand(-0.5, 0.5), rand(-0.5, 0.5), 0.6, rand(1, 2), '#adf', 5);
+    } else if (ship.name === '雷霆号') {
+      spawnParticle(tx, ty, rand(-0.2, 0.2), rand(3, 6), 0.15, rand(1.5, 3), ['#ff0', '#ffa', '#fff'][randInt(0, 2)], 15);
+      if (Math.random() < 0.3) spawnParticle(tx + rand(-10, 10), ty, rand(-0.5, 0.5), rand(2, 4), 0.2, rand(1, 2), '#ff0', 10);
+    } else {
+      spawnParticle(tx, ty, rand(-0.3, 0.3), rand(2, 4), 0.3, rand(2, 4), ['#0ff', '#088', '#fff'][randInt(0, 2)], 8);
+    }
   }
 }
 
@@ -1357,52 +1593,231 @@ function drawPlayer() {
   ctx.shadowBlur = 20;
   ctx.shadowColor = c;
 
-  // Ship body
-  ctx.fillStyle = c;
-  ctx.strokeStyle = '#fff';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(x, y - 20);
-  ctx.lineTo(x - 14, y + 12);
-  ctx.lineTo(x - 8, y + 8);
-  ctx.lineTo(x, y + 14);
-  ctx.lineTo(x + 8, y + 8);
-  ctx.lineTo(x + 14, y + 12);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
+  const t = gameTime;
 
-  // Cockpit
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.arc(x, y - 8, 4, 0, TAU);
-  ctx.fill();
+  if (ship.name === '幻影号') {
+    // Phantom - sleek diamond body + swept wings + dual engines
+    // Body
+    ctx.fillStyle = c;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x, y - 24);
+    ctx.lineTo(x - 6, y - 8);
+    ctx.lineTo(x - 18, y + 8);
+    ctx.lineTo(x - 10, y + 14);
+    ctx.lineTo(x, y + 10);
+    ctx.lineTo(x + 10, y + 14);
+    ctx.lineTo(x + 18, y + 8);
+    ctx.lineTo(x + 6, y - 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // Cockpit
+    ctx.fillStyle = '#fff';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.ellipse(x, y - 10, 3, 6, 0, 0, TAU);
+    ctx.fill();
+    // Wing energy arcs
+    ctx.strokeStyle = `rgba(0, 255, 255, ${0.4 + Math.sin(t * 6) * 0.3})`;
+    ctx.lineWidth = 1.5;
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(x - 18, y + 4, 8, -PI * 0.8, -PI * 0.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x + 18, y + 4, 8, -PI * 0.8, -PI * 0.2);
+    ctx.stroke();
+    // Engine glow
+    drawEngineGlow(x - 8, y + 14, 4, '#0ff', 0.8);
+    drawEngineGlow(x + 8, y + 14, 4, '#0ff', 0.8);
 
-  // Wings detail
-  ctx.strokeStyle = c;
-  ctx.lineWidth = 1;
-  ctx.globalAlpha = 0.6;
-  ctx.beginPath();
-  ctx.moveTo(x - 14, y + 12);
-  ctx.lineTo(x - 22, y + 6);
-  ctx.moveTo(x + 14, y + 12);
-  ctx.lineTo(x + 22, y + 6);
-  ctx.stroke();
+  } else if (ship.name === '烈焰号') {
+    // Blaze - wide delta + canard fins + flame pulse
+    ctx.fillStyle = c;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    // Main delta wing
+    ctx.beginPath();
+    ctx.moveTo(x, y - 20);
+    ctx.lineTo(x - 24, y + 10);
+    ctx.lineTo(x - 16, y + 14);
+    ctx.lineTo(x - 4, y + 8);
+    ctx.lineTo(x, y + 12);
+    ctx.lineTo(x + 4, y + 8);
+    ctx.lineTo(x + 16, y + 14);
+    ctx.lineTo(x + 24, y + 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // Canard fins
+    ctx.fillStyle = `rgba(255, 136, 0, ${0.7 + Math.sin(t * 4) * 0.3})`;
+    ctx.beginPath();
+    ctx.moveTo(x - 6, y - 12);
+    ctx.lineTo(x - 16, y - 6);
+    ctx.lineTo(x - 8, y - 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(x + 6, y - 12);
+    ctx.lineTo(x + 16, y - 6);
+    ctx.lineTo(x + 8, y - 4);
+    ctx.closePath();
+    ctx.fill();
+    // Flame core pulse
+    ctx.fillStyle = '#ff0';
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#f80';
+    ctx.beginPath();
+    ctx.arc(x, y, 3 + Math.sin(t * 8) * 1.5, 0, TAU);
+    ctx.fill();
+    // Engines
+    drawEngineGlow(x - 10, y + 14, 6, '#f80', 1.0);
+    drawEngineGlow(x + 10, y + 14, 6, '#f80', 1.0);
+    drawEngineGlow(x, y + 12, 5, '#ff0', 0.7);
+
+  } else if (ship.name === '寒冰号') {
+    // Frost - flying wing + hexagonal shield pattern + ice particles
+    ctx.fillStyle = c;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    // Flying wing body
+    ctx.beginPath();
+    ctx.moveTo(x, y - 18);
+    ctx.lineTo(x - 8, y - 6);
+    ctx.lineTo(x - 26, y + 4);
+    ctx.lineTo(x - 20, y + 12);
+    ctx.lineTo(x - 6, y + 8);
+    ctx.lineTo(x, y + 14);
+    ctx.lineTo(x + 6, y + 8);
+    ctx.lineTo(x + 20, y + 12);
+    ctx.lineTo(x + 26, y + 4);
+    ctx.lineTo(x + 8, y - 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // Hexagonal shield pattern
+    ctx.strokeStyle = `rgba(68, 204, 255, ${0.3 + Math.sin(t * 3) * 0.2})`;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const r = 8 + i * 6;
+      ctx.beginPath();
+      for (let j = 0; j < 6; j++) {
+        const a = (j / 6) * TAU - PI / 2 + t * 0.5;
+        const px = x + Math.cos(a) * r;
+        const py = y + Math.sin(a) * r;
+        j === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.stroke();
+    }
+    // Ice crystal cockpit
+    ctx.fillStyle = '#adf';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.moveTo(x, y - 14);
+    ctx.lineTo(x - 4, y - 8);
+    ctx.lineTo(x, y - 4);
+    ctx.lineTo(x + 4, y - 8);
+    ctx.closePath();
+    ctx.fill();
+    // Engine
+    drawEngineGlow(x, y + 14, 5, '#4cf', 0.8);
+
+  } else if (ship.name === '雷霆号') {
+    // Thunder - narrow arrow + folding wings + lightning arcs
+    ctx.fillStyle = c;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    // Narrow arrow body
+    ctx.beginPath();
+    ctx.moveTo(x, y - 26);
+    ctx.lineTo(x - 4, y - 10);
+    ctx.lineTo(x - 20, y + 2);
+    ctx.lineTo(x - 12, y + 10);
+    ctx.lineTo(x - 4, y + 6);
+    ctx.lineTo(x, y + 16);
+    ctx.lineTo(x + 4, y + 6);
+    ctx.lineTo(x + 12, y + 10);
+    ctx.lineTo(x + 20, y + 2);
+    ctx.lineTo(x + 4, y - 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // Lightning arcs
+    ctx.strokeStyle = `rgba(255, 255, 0, ${0.5 + Math.random() * 0.5})`;
+    ctx.lineWidth = 1.5;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = '#ff0';
+    for (let i = 0; i < 2; i++) {
+      const sx = x + (i === 0 ? -1 : 1) * 15;
+      const sy = y + 2;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(sx + rand(-4, 4), sy - 8);
+      ctx.lineTo(sx + rand(-4, 4), sy - 16);
+      ctx.stroke();
+    }
+    // Speed lines
+    ctx.strokeStyle = `rgba(255, 255, 0, 0.3)`;
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const lx = x + rand(-12, 12);
+      ctx.beginPath();
+      ctx.moveTo(lx, y + 18);
+      ctx.lineTo(lx, y + 30 + rand(0, 15));
+      ctx.stroke();
+    }
+    // Engine
+    drawEngineGlow(x, y + 16, 5, '#ff0', 1.0);
+  }
 
   ctx.restore();
 
-  // Shield
+  // Shield visual
   if (player.shieldActive) {
     ctx.save();
-    ctx.strokeStyle = `rgba(0, 255, 255, ${0.5 + Math.sin(gameTime * 8) * 0.3})`;
+    const sa = 0.5 + Math.sin(gameTime * 8) * 0.3;
+    ctx.strokeStyle = `rgba(0, 255, 255, ${sa})`;
     ctx.lineWidth = 2;
     ctx.shadowBlur = 20;
     ctx.shadowColor = '#0ff';
+    // Hexagonal shield
     ctx.beginPath();
-    ctx.arc(x, y, 30, 0, TAU);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * TAU - PI / 2 + gameTime * 0.5;
+      const px = x + Math.cos(a) * 32;
+      const py = y + Math.sin(a) * 32;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
     ctx.stroke();
     ctx.restore();
   }
+}
+
+function drawEngineGlow(x, y, size, color, intensity) {
+  const t = gameTime;
+  const flicker = 0.7 + Math.sin(t * 15 + x) * 0.3;
+  ctx.save();
+  // Outer glow
+  const grad = ctx.createRadialGradient(x, y, 0, x, y, size * 2);
+  grad.addColorStop(0, color);
+  grad.addColorStop(0.4, color + '88');
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.globalAlpha = intensity * flicker;
+  ctx.beginPath();
+  ctx.arc(x, y, size * 2, 0, TAU);
+  ctx.fill();
+  // Core
+  ctx.fillStyle = '#fff';
+  ctx.globalAlpha = intensity * flicker * 0.8;
+  ctx.beginPath();
+  ctx.arc(x, y, size * 0.4, 0, TAU);
+  ctx.fill();
+  ctx.restore();
 }
 
 function damagePlayer(amount) {
@@ -1446,13 +1861,14 @@ const ENEMY_TYPES = {
 
 function spawnEnemy(type, x, y, extraHp = 0) {
   const t = ENEMY_TYPES[type];
-  const eHp = Math.round((t.hp + extraHp) * mods.enemyHpMult);
+  const df = DIFFICULTIES[difficulty];
+  const eHp = Math.round((t.hp + extraHp) * mods.enemyHpMult * df.hpMult);
   enemies.push({
     type, x, y, w: t.size * 2, h: t.size * 2,
     hp: eHp, maxHp: eHp,
-    size: t.size, color: t.color, speed: t.speed * mods.enemySpdMult,
-    score: t.score, fireTimer: rand(0, t.fireRate),
-    fireRate: t.fireRate, pattern: t.pattern,
+    size: t.size, color: t.color, speed: t.speed * mods.enemySpdMult * df.spdMult,
+    score: Math.round(t.score * df.scoreMult), fireTimer: rand(0, t.fireRate / df.fireMult),
+    fireRate: t.fireRate / df.fireMult, pattern: t.pattern,
     age: 0, phaseTimer: 0, startX: x
   });
 }
@@ -1504,27 +1920,37 @@ function updateEnemies(dt) {
 }
 
 function enemyFire(e) {
+  const df = DIFFICULTIES[difficulty];
+  const bs = df.bulletSpdMult;
+  const extra = df.extraBullets;
   switch (e.type) {
     case 'scout':
-      spawnEnemyBulletAimed(e.x, e.y + e.size, 4, 4, '#f44');
+      spawnEnemyBulletAimed(e.x, e.y + e.size, 4 * bs, 4, '#f44');
+      for (let i = 0; i < extra; i++) spawnEnemyBulletAimed(e.x + rand(-10, 10), e.y + e.size, 3.5 * bs, 3, '#f66');
       break;
     case 'fighter':
-      spawnEnemyBulletAimed(e.x - 8, e.y + e.size, 3.5, 3, '#fa0');
-      spawnEnemyBulletAimed(e.x + 8, e.y + e.size, 3.5, 3, '#fa0');
+      spawnEnemyBulletAimed(e.x - 8, e.y + e.size, 3.5 * bs, 3, '#fa0');
+      spawnEnemyBulletAimed(e.x + 8, e.y + e.size, 3.5 * bs, 3, '#fa0');
+      for (let i = 0; i < extra; i++) spawnEnemyBulletAimed(e.x, e.y + e.size, 3 * bs, 3, '#fc0');
       break;
     case 'tank':
-      for (let i = 0; i < 5; i++) {
-        const a = (i / 5) * TAU + e.age;
-        spawnEnemyBullet(e.x, e.y + e.size, Math.cos(a) * 3, Math.sin(a) * 3, 5, '#f0f');
+      for (let i = 0; i < 5 + extra; i++) {
+        const a = (i / (5 + extra)) * TAU + e.age;
+        spawnEnemyBullet(e.x, e.y + e.size, Math.cos(a) * 3 * bs, Math.sin(a) * 3 * bs, 5, '#f0f');
       }
       break;
     case 'sniper':
-      spawnEnemyBulletAimed(e.x, e.y + e.size, 7, 3, '#4f4');
+      spawnEnemyBulletAimed(e.x, e.y + e.size, 7 * bs, 3, '#4f4');
+      for (let i = 0; i < extra; i++) {
+        const sp = (i - (extra - 1) / 2) * 8 * DEG;
+        const a = angle(e.x, e.y, player.x, player.y) + sp;
+        spawnEnemyBullet(e.x, e.y + e.size, Math.cos(a) * 6 * bs, Math.sin(a) * 6 * bs, 3, '#6f6');
+      }
       spawnParticle(e.x, e.y + e.size, 0, 2, 0.2, 4, '#4f4', 10);
       break;
     case 'bomber':
-      for (let i = -2; i <= 2; i++) {
-        spawnEnemyBullet(e.x, e.y + e.size, i * 0.8, 3, 4, '#ff4');
+      for (let i = -2 - Math.floor(extra / 2); i <= 2 + Math.floor(extra / 2); i++) {
+        spawnEnemyBullet(e.x, e.y + e.size, i * 0.8 * bs, 3 * bs, 4, '#ff4');
       }
       break;
   }
@@ -1542,13 +1968,14 @@ function onEnemyDestroyed(e) {
   spawnRing(e.x, e.y, 10, e.color, 2);
   screenShake = Math.min(0.4, screenShake + 0.1);
 
+  const df = DIFFICULTIES[difficulty];
   // Drop powerups
-  if (Math.random() < 0.12 * mods.dropMult) {
+  if (Math.random() < 0.12 * mods.dropMult * df.dropMult) {
     spawnPowerup(e.x, e.y);
   }
   // Drop coins
-  if (Math.random() < 0.3 * mods.dropMult) {
-    spawnCoin(e.x, e.y, randInt(1, 3 + currentLevel) * mods.dropMult);
+  if (Math.random() < 0.3 * mods.dropMult * df.dropMult) {
+    spawnCoin(e.x, e.y, randInt(1, 3 + currentLevel) * mods.dropMult * df.dropMult);
   }
 }
 
@@ -1614,7 +2041,7 @@ class Boss {
     this.y = -80;
     this.targetY = 100;
     this.size = 50 + level * 10;
-    this.hp = 500 + level * 300;
+    this.hp = Math.round((500 + level * 300) * DIFFICULTIES[difficulty].bossMult);
     this.maxHp = this.hp;
     this.phase = 0;
     this.phaseTimer = 0;
@@ -2075,6 +2502,14 @@ function updateLevel(dt) {
 }
 
 function spawnBoss() {
+  // Boss warning effect
+  const warn = document.createElement('div');
+  warn.className = 'boss-warning';
+  warn.innerHTML = '<h1>WARNING</h1>';
+  document.body.appendChild(warn);
+  screenShake = 0.5;
+  flashAlpha = 0.3;
+  setTimeout(() => warn.remove(), 1500);
   boss = new Boss(currentLevel);
 }
 
@@ -2090,34 +2525,48 @@ function showLevelBanner(nextLevel, callback) {
   }, 3000);
 }
 
-// ==================== STARFIELD ====================
-const stars = [];
-for (let i = 0; i < 200; i++) {
-  stars.push({
-    x: Math.random() * 2000,
-    y: Math.random() * 2000,
-    size: rand(0.5, 2.5),
-    brightness: rand(0.3, 1),
-    speed: rand(0.3, 1.5)
-  });
-}
+// ==================== STARFIELD (multi-layer parallax) ====================
+const starLayers = [
+  { count: 80, sizeMin: 0.3, sizeMax: 0.8, speed: 0.2, alpha: 0.3 },  // Far
+  { count: 60, sizeMin: 0.5, sizeMax: 1.2, speed: 0.5, alpha: 0.5 },  // Mid
+  { count: 40, sizeMin: 1.0, sizeMax: 2.5, speed: 1.0, alpha: 0.8 },  // Near
+  { count: 20, sizeMin: 1.5, sizeMax: 3.0, speed: 1.5, alpha: 1.0 },  // Closest
+];
+const allStars = starLayers.map(layer => {
+  const stars = [];
+  for (let i = 0; i < layer.count; i++) {
+    stars.push({
+      x: Math.random() * 2000,
+      y: Math.random() * 2000,
+      size: rand(layer.sizeMin, layer.sizeMax),
+      brightness: rand(0.3, 1),
+      twinkle: rand(0, TAU)
+    });
+  }
+  return { ...layer, stars };
+});
 
 function drawStarfield(dt) {
   const level = LEVELS[currentLevel] || LEVELS[0];
-  const speed = (level.starSpeed || 0.5) * 60 * dt;
+  const baseSpeed = (level.starSpeed || 0.5) * 60 * dt;
 
-  for (const s of stars) {
-    s.y += s.speed * speed;
-    if (s.y > H + 10) {
-      s.y = -10;
-      s.x = Math.random() * W;
+  for (const layer of allStars) {
+    for (const s of layer.stars) {
+      s.y += layer.speed * baseSpeed * s.brightness;
+      s.twinkle += dt * 2;
+      if (s.y > H + 10) {
+        s.y = -10;
+        s.x = Math.random() * W;
+      }
+      if (s.x > W) s.x = s.x % W;
+
+      const twinkle = 0.6 + Math.sin(s.twinkle) * 0.4;
+      const alpha = layer.alpha * s.brightness * twinkle;
+      ctx.fillStyle = `rgba(200, 220, 255, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.size, 0, TAU);
+      ctx.fill();
     }
-    if (s.x > W) s.x = s.x % W;
-
-    ctx.fillStyle = `rgba(200, 220, 255, ${s.brightness})`;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.size, 0, TAU);
-    ctx.fill();
   }
 }
 
@@ -2206,12 +2655,20 @@ function drawHUD() {
   ctx.fillText(LEVELS[currentLevel]?.name || '', pad, pad + 74);
   ctx.restore();
 
+  // Difficulty indicator
+  ctx.save();
+  ctx.fillStyle = DIFFICULTIES[difficulty].color;
+  ctx.font = '11px Courier New';
+  ctx.textAlign = 'left';
+  ctx.fillText(DIFFICULTIES[difficulty].name, pad, pad + 90);
+  ctx.restore();
+
   // Weapon level
   ctx.save();
   ctx.fillStyle = '#0ff';
   ctx.font = '12px Courier New';
   ctx.textAlign = 'left';
-  ctx.fillText(`WEAPON LV.${player.weaponLevel}`, pad, pad + 90);
+  ctx.fillText(`WEAPON LV.${player.weaponLevel}`, pad, pad + 106);
   ctx.restore();
 
   // Pause overlay
@@ -2380,7 +2837,7 @@ function checkCollisions() {
     if (boss && !boss.entering && !boss.defeated) {
       if (dist(b.x, b.y, boss.x, boss.y) < boss.size) {
         boss.hp -= b.damage;
-        spawnExplosion(b.x, b.y, 3, b.color, 1, 2);
+        spawnBulletImpact(b.x, b.y, b.color, b.size);
         if (boss.hp <= 0) {
           boss.defeated = true;
           boss.defeatTimer = 0;
@@ -2400,7 +2857,7 @@ function checkCollisions() {
         const e = enemies[ei];
         if (dist(b.x, b.y, e.x, e.y) < e.size + b.size) {
           e.hp -= b.damage;
-          spawnExplosion(b.x, b.y, 2, b.color, 1, 1);
+          spawnBulletImpact(b.x, b.y, b.color, b.size);
           if (b.pierce > 0) { b.pierce--; } else { hit = true; }
           break;
         }
@@ -2439,10 +2896,15 @@ function checkCollisions() {
 
 // ==================== UI SCREENS ====================
 function showScreen(id) {
-  ['menu-screen', 'game-over-screen', 'victory-screen', 'shop-screen', 'select-screen'].forEach(s => {
+  ['menu-screen', 'difficulty-screen', 'game-over-screen', 'victory-screen', 'shop-screen', 'select-screen'].forEach(s => {
     document.getElementById(s).classList.add('hidden');
   });
   if (id) document.getElementById(id).classList.remove('hidden');
+}
+
+function showDifficulty() {
+  SFX.menuClick();
+  showScreen('difficulty-screen');
 }
 
 function startGame() {
@@ -2479,21 +2941,29 @@ function startGame() {
 function showGameOver() {
   SFX.gameOver();
   showScreen('game-over-screen');
+  const df = DIFFICULTIES[difficulty];
   const earnedCoins = Math.floor(score / 20);
   coins += earnedCoins;
   saveGame();
   document.getElementById('final-score').textContent = score.toLocaleString();
   document.getElementById('earned-coins').textContent = earnedCoins;
+  const diffEl = document.getElementById('go-diff');
+  diffEl.textContent = `难度: ${df.name}`;
+  diffEl.style.color = df.color;
 }
 
 function showVictory() {
   SFX.victory();
   showScreen('victory-screen');
+  const df = DIFFICULTIES[difficulty];
   const earnedCoins = Math.floor(score / 10);
   coins += earnedCoins;
   saveGame();
   document.getElementById('victory-score').textContent = score.toLocaleString();
   document.getElementById('victory-coins').textContent = earnedCoins;
+  const diffEl = document.getElementById('v-diff');
+  diffEl.textContent = `难度: ${df.name}`;
+  diffEl.style.color = df.color;
 }
 
 function backToMenu() {
