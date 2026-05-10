@@ -491,9 +491,35 @@ canvas { display: block; image-rendering: pixelated; touch-action: none; backgro
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
+// Pre-rendered overlay canvas for scanlines + vignette
+const overlayCanvas = document.createElement('canvas');
+const overlayCtx = overlayCanvas.getContext('2d');
+
+function buildOverlay() {
+  overlayCanvas.width = canvas.width;
+  overlayCanvas.height = canvas.height;
+  const oc = overlayCtx;
+  const w = canvas.width, h = canvas.height;
+  oc.clearRect(0, 0, w, h);
+
+  // Scanlines (alpha 0.03 baked in)
+  oc.fillStyle = 'rgba(0,0,0,0.03)';
+  for (let y = 0; y < h; y += 3) {
+    oc.fillRect(0, y, w, 1);
+  }
+
+  // Vignette
+  const grd = oc.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, h * 0.8);
+  grd.addColorStop(0, 'rgba(0,0,0,0)');
+  grd.addColorStop(1, 'rgba(0,0,0,0.5)');
+  oc.fillStyle = grd;
+  oc.fillRect(0, 0, w, h);
+}
+
 function resizeCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  buildOverlay();
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
@@ -1177,7 +1203,8 @@ function spawnRing(x, y, count, color, speed = 2) {
 }
 
 function updateParticles(dt) {
-  for (let i = particles.length - 1; i >= 0; i--) {
+  let w = 0;
+  for (let i = 0; i < particles.length; i++) {
     const p = particles[i];
     p.x += p.vx * dt * 60;
     p.y += p.vy * dt * 60;
@@ -1185,26 +1212,40 @@ function updateParticles(dt) {
     p.vy *= 0.98;
     p.age += dt;
     p.life -= dt;
-    if (p.life <= 0) particles.splice(i, 1);
+    if (p.life > 0) particles[w++] = p;
   }
+  particles.length = w;
 }
 
 function drawParticles() {
+  // Batch non-glow particles first (no save/restore needed)
+  ctx.shadowBlur = 0;
   for (const p of particles) {
+    if (p.glow) continue;
+    const alpha = clamp(p.life / p.maxLife, 0, 1);
+    const s = p.size * (0.5 + alpha * 0.5);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, s, 0, TAU);
+    ctx.fill();
+  }
+  // Glow particles (need shadow)
+  for (const p of particles) {
+    if (!p.glow) continue;
     const alpha = clamp(p.life / p.maxLife, 0, 1);
     const s = p.size * (0.5 + alpha * 0.5);
     ctx.save();
     ctx.globalAlpha = alpha;
-    if (p.glow) {
-      ctx.shadowBlur = p.glow;
-      ctx.shadowColor = p.color;
-    }
+    ctx.shadowBlur = p.glow;
+    ctx.shadowColor = p.color;
     ctx.fillStyle = p.color;
     ctx.beginPath();
     ctx.arc(p.x, p.y, s, 0, TAU);
     ctx.fill();
     ctx.restore();
   }
+  ctx.globalAlpha = 1;
 }
 
 // ==================== BULLET POOLS ====================
@@ -1225,7 +1266,8 @@ function spawnEnemyBulletAimed(x, y, speed, size, color) {
 }
 
 function updateBullets(dt) {
-  for (let i = playerBullets.length - 1; i >= 0; i--) {
+  let w = 0;
+  for (let i = 0; i < playerBullets.length; i++) {
     const b = playerBullets[i];
     // Record trail
     if (b.trail.length > 8) b.trail.shift();
@@ -1233,15 +1275,19 @@ function updateBullets(dt) {
     b.x += b.vx * dt * 60;
     b.y += b.vy * dt * 60;
     b.age += dt;
-    if (b.y < -20 || b.x < -20 || b.x > W + 20) playerBullets.splice(i, 1);
+    if (b.y >= -20 && b.x >= -20 && b.x <= W + 20) playerBullets[w++] = b;
   }
-  for (let i = enemyBullets.length - 1; i >= 0; i--) {
+  playerBullets.length = w;
+
+  w = 0;
+  for (let i = 0; i < enemyBullets.length; i++) {
     const b = enemyBullets[i];
     b.x += b.vx * dt * 60;
     b.y += b.vy * dt * 60;
     b.age += dt;
-    if (b.y > H + 20 || b.y < -20 || b.x < -20 || b.x > W + 20) enemyBullets.splice(i, 1);
+    if (b.y <= H + 20 && b.y >= -20 && b.x >= -20 && b.x <= W + 20) enemyBullets[w++] = b;
   }
+  enemyBullets.length = w;
 }
 
 function drawBullets() {
@@ -1359,29 +1405,29 @@ function drawBullets() {
   }
 
   // Enemy bullets with enhanced visuals
+  ctx.shadowBlur = 10;
   for (const b of enemyBullets) {
-    ctx.save();
-    ctx.shadowBlur = 10;
     ctx.shadowColor = b.color;
     ctx.fillStyle = b.color;
 
-    // Rotating diamond for enemy bullets
-    ctx.translate(b.x, b.y);
-    ctx.rotate(b.age * 4);
+    // Rotating diamond using direct math (no translate/rotate)
+    const cos = Math.cos(b.age * 4), sin = Math.sin(b.age * 4);
+    const hw = b.size * 0.6, hh = b.size;
+    // Rotated diamond vertices: (0,-hh), (hw,0), (0,hh), (-hw,0)
     ctx.beginPath();
-    ctx.moveTo(0, -b.size);
-    ctx.lineTo(b.size * 0.6, 0);
-    ctx.lineTo(0, b.size);
-    ctx.lineTo(-b.size * 0.6, 0);
+    ctx.moveTo(b.x + (-hh) * sin, b.y + (-hh) * cos);
+    ctx.lineTo(b.x + hw * cos, b.y - hw * sin);
+    ctx.lineTo(b.x + hh * sin, b.y + hh * cos);
+    ctx.lineTo(b.x - hw * cos, b.y + hw * sin);
     ctx.closePath();
     ctx.fill();
 
     // Inner glow
     ctx.fillStyle = '#fff';
-    ctx.shadowBlur = 0;
     ctx.beginPath();
-    ctx.arc(0, 0, b.size * 0.3, 0, TAU);
+    ctx.arc(b.x, b.y, b.size * 0.3, 0, TAU);
     ctx.fill();
+    ctx.fillStyle = b.color;
 
     // Boss bullets get an outer energy ring
     if (b.size >= 4) {
@@ -1389,12 +1435,12 @@ function drawBullets() {
       ctx.globalAlpha = 0.4 + Math.sin(b.age * 10) * 0.2;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(0, 0, b.size * 1.5, 0, TAU);
+      ctx.arc(b.x, b.y, b.size * 1.5, 0, TAU);
       ctx.stroke();
     }
-
-    ctx.restore();
   }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
 }
 
 // ==================== PLAYER ====================
@@ -1961,7 +2007,9 @@ function updateEnemies(dt) {
       if (e.hp <= 0) {
         onEnemyDestroyed(e);
       }
-      enemies.splice(i, 1);
+      // swap-and-pop
+      enemies[i] = enemies[enemies.length - 1];
+      enemies.pop();
     }
   }
 }
@@ -2318,11 +2366,12 @@ function updatePowerups(dt) {
     // Collect
     if (d < 25 && player.alive) {
       collectPowerup(p);
-      powerups.splice(i, 1);
+      powerups[i] = powerups[powerups.length - 1];
+      powerups.pop();
       continue;
     }
 
-    if (p.y > H + 20) { powerups.splice(i, 1); }
+    if (p.y > H + 20) { powerups[i] = powerups[powerups.length - 1]; powerups.pop(); }
   }
 }
 
@@ -2396,28 +2445,31 @@ function updateCoins(dt) {
       score += c.amount * 5;
       SFX.coin();
       spawnParticle(c.x, c.y, 0, -2, 0.3, 3, '#fd0', 10);
-      coinPool.splice(i, 1);
+      coinPool[i] = coinPool[coinPool.length - 1];
+      coinPool.pop();
       continue;
     }
-    if (c.y > H + 20) coinPool.splice(i, 1);
+    if (c.y > H + 20) { coinPool[i] = coinPool[coinPool.length - 1]; coinPool.pop(); }
   }
 }
 function drawCoins() {
+  if (coinPool.length === 0) return;
+  ctx.save();
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = '#fd0';
+  ctx.fillStyle = '#fd0';
+  ctx.font = '8px Courier New';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
   for (const c of coinPool) {
-    ctx.save();
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = '#fd0';
-    ctx.fillStyle = '#fd0';
     ctx.beginPath();
     ctx.arc(c.x, c.y, c.size, 0, TAU);
     ctx.fill();
     ctx.fillStyle = '#a80';
-    ctx.font = '8px Courier New';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
     ctx.fillText('$', c.x, c.y);
-    ctx.restore();
+    ctx.fillStyle = '#fd0';
   }
+  ctx.restore();
 }
 
 // ==================== LEVEL SYSTEM ====================
@@ -2669,12 +2721,14 @@ function drawStarfield(dt) {
 
       const twinkle = 0.6 + Math.sin(s.twinkle) * 0.4;
       const alpha = layer.alpha * s.brightness * twinkle;
-      ctx.fillStyle = `rgba(200, 220, 255, ${alpha})`;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.size, 0, TAU);
-      ctx.fill();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = '#c8dcff';
+      // fillRect is much cheaper than arc for tiny stars
+      const half = s.size * 0.5;
+      ctx.fillRect(s.x - half, s.y - half, s.size, s.size);
     }
   }
+  ctx.globalAlpha = 1;
 }
 
 // ==================== HUD ====================
@@ -2806,21 +2860,8 @@ function drawHUD() {
 // ==================== SCREEN EFFECTS ====================
 let flashAlpha = 0;
 function drawScreenEffects() {
-  // Scanlines
-  ctx.save();
-  ctx.globalAlpha = 0.03;
-  for (let y = 0; y < H; y += 3) {
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, y, W, 1);
-  }
-  ctx.restore();
-
-  // Vignette
-  const grd = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.8);
-  grd.addColorStop(0, 'rgba(0,0,0,0)');
-  grd.addColorStop(1, 'rgba(0,0,0,0.5)');
-  ctx.fillStyle = grd;
-  ctx.fillRect(0, 0, W, H);
+  // Pre-rendered scanlines + vignette in one drawImage
+  ctx.drawImage(overlayCanvas, 0, 0);
 
   // Flash
   if (flashAlpha > 0) {
@@ -2983,7 +3024,7 @@ function checkCollisions() {
       }
     }
 
-    if (hit) playerBullets.splice(bi, 1);
+    if (hit) { playerBullets[bi] = playerBullets[playerBullets.length - 1]; playerBullets.pop(); }
   }
 
   // Enemy bullets vs player
@@ -2992,7 +3033,8 @@ function checkCollisions() {
       const b = enemyBullets[i];
       if (dist(b.x, b.y, player.x, player.y) < 15) {
         damagePlayer(10);
-        enemyBullets.splice(i, 1);
+        enemyBullets[i] = enemyBullets[enemyBullets.length - 1];
+        enemyBullets.pop();
       }
     }
 
