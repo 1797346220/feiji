@@ -302,20 +302,22 @@ canvas { display: block; image-rendering: pixelated; touch-action: none; }
   <div class="menu-title">NEON STRIKER</div>
   <div class="menu-subtitle">霓 虹 突 击</div>
   <button class="btn" onclick="showDifficulty()">开 始 游 戏</button>
+  <button class="btn" onclick="showDifficultyEndless()">无 尽 模 式</button>
   <button class="btn" onclick="showSelect()">选 择 战 机</button>
   <button class="btn" onclick="showShop()">强 化 升 级</button>
   <div class="controls-hint">
     方向键/WASD 移动 &nbsp;|&nbsp; 自动射击<br>
     SHIFT 护盾 &nbsp;|&nbsp; SPACE 清屏大招<br>
-    P 暂停 &nbsp;|&nbsp; C 控制面板
+    P 暂停 &nbsp;|&nbsp; C 控制面板<br>
+    <span style="color:#0ff;">故事模式</span> 通关4章 &nbsp;|&nbsp; <span style="color:#f80;">无尽模式</span> 存活挑战
   </div>
   <button class="btn btn-small" style="position:fixed;bottom:20px;right:20px;z-index:30;" onclick="toggleSound()" id="sound-btn">🔊 音效开启</button>
 </div>
 
 <!-- Difficulty Screen -->
 <div id="difficulty-screen" class="hidden">
-  <div class="menu-title" style="font-size:40px;">选择难度</div>
-  <div class="menu-subtitle" style="margin-bottom:20px;">DIFFICULTY</div>
+  <div class="menu-title" style="font-size:40px;" id="diff-title">选择难度</div>
+  <div class="menu-subtitle" style="margin-bottom:20px;" id="diff-subtitle">DIFFICULTY</div>
   <div class="diff-cards">
     <div class="diff-card diff-easy" onclick="selectDifficulty(0)">
       <div class="diff-name">简 单</div>
@@ -508,11 +510,20 @@ const DIFFICULTIES = [
   { name: '地狱', color: '#f00', hpMult: 1.8, spdMult: 1.5, fireMult: 1.6, bossMult: 2.0, bulletSpdMult: 1.4, dropMult: 0.7, scoreMult: 2.0, extraBullets: 3 }
 ];
 let difficulty = 1; // default: hard
+let gameMode = 'story'; // 'story' or 'endless'
 
 function selectDifficulty(idx) {
   difficulty = idx;
   SFX.menuClick();
   startGame();
+}
+
+function showDifficultyEndless() {
+  gameMode = 'endless';
+  SFX.menuClick();
+  document.getElementById('diff-title').textContent = '无尽模式';
+  document.getElementById('diff-subtitle').textContent = 'ENDLESS MODE';
+  showScreen('difficulty-screen');
 }
 
 // ==================== GAME STATE ====================
@@ -944,39 +955,64 @@ const SFX = {
   }
 };
 
-// ==================== BGM ====================
+// ==================== BGM (per-level themes) ====================
+const BGM_THEMES = [
+  { // Ch1: 太空前线 - Synthwave, moderate
+    bass: [110, 87.3, 130.8, 98],
+    chords: [[220, 261.6, 329.6], [174.6, 220, 261.6], [261.6, 329.6, 392], [196, 246.9, 293.7]],
+    arps: [[440, 523.3, 659.3, 523.3], [349.2, 440, 523.3, 440], [523.3, 659.3, 784, 659.3], [392, 493.9, 587.3, 493.9]],
+    bpm: 110, padFilter: 1200, arpVol: 0.06, padVol: 0.04, bassVol: 0.2
+  },
+  { // Ch2: 云层突破 - Faster, intense
+    bass: [130.8, 110, 98, 82.4],
+    chords: [[261.6, 329.6, 392], [220, 277.2, 329.6], [196, 246.9, 293.7], [164.8, 207.7, 261.6]],
+    arps: [[523.3, 659.3, 784, 659.3], [440, 554.4, 659.3, 554.4], [392, 493.9, 587.3, 493.9], [329.6, 415.3, 523.3, 415.3]],
+    bpm: 128, padFilter: 1500, arpVol: 0.07, padVol: 0.05, bassVol: 0.22
+  },
+  { // Ch3: 机械基地 - Dark, industrial
+    bass: [82.4, 73.4, 98, 110],
+    chords: [[164.8, 196, 246.9], [146.8, 174.6, 220], [196, 233.1, 293.7], [220, 261.6, 329.6]],
+    arps: [[329.6, 392, 493.9, 392], [293.7, 349.2, 440, 349.2], [392, 466.2, 587.3, 466.2], [440, 523.3, 659.3, 523.3]],
+    bpm: 100, padFilter: 800, arpVol: 0.05, padVol: 0.04, bassVol: 0.25
+  },
+  { // Ch4: 异星深渊 - Epic, climactic
+    bass: [110, 130.8, 98, 87.3],
+    chords: [[220, 277.2, 329.6], [261.6, 329.6, 415.3], [196, 246.9, 293.7], [174.6, 220, 277.2]],
+    arps: [[440, 554.4, 659.3, 880], [523.3, 659.3, 830.6, 659.3], [392, 493.9, 587.3, 784], [349.2, 440, 554.4, 440]],
+    bpm: 140, padFilter: 1800, arpVol: 0.08, padVol: 0.06, bassVol: 0.22
+  }
+];
+
 const BGM = {
   ctx: null,
   gain: null,
   playing: false,
   muted: false,
   intervalId: null,
-  // Synthwave chord progression: Am - F - C - G
-  // Notes in Hz
-  bass:   [110,   87.3,  130.8, 98],
-  chords: [
-    [220, 261.6, 329.6],  // Am
-    [174.6, 220, 261.6],  // F
-    [261.6, 329.6, 392],  // C
-    [196, 246.9, 293.7]   // G
-  ],
-  // Arpeggio notes per chord (A minor scale tones)
-  arps: [
-    [440, 523.3, 659.3, 523.3],
-    [349.2, 440, 523.3, 440],
-    [523.3, 659.3, 784, 659.3],
-    [392, 493.9, 587.3, 493.9]
-  ],
+  currentTheme: 0,
+  theme: null,
+
   init(audioCtx, masterGain) {
     this.ctx = audioCtx;
     this.gain = this.ctx.createGain();
-    this.gain.gain.value = 0.12;
+    this.gain.gain.value = 0.15;
     this.gain.connect(masterGain);
   },
+
+  setTheme(idx) {
+    const wasPlaying = this.playing;
+    if (wasPlaying) this.stop();
+    this.currentTheme = Math.min(idx, BGM_THEMES.length - 1);
+    this.theme = BGM_THEMES[this.currentTheme];
+    if (wasPlaying) this.start();
+  },
+
   start() {
     if (this.playing || !this.ctx || this.muted) return;
+    if (!this.theme) this.theme = BGM_THEMES[this.currentTheme];
     this.playing = true;
-    const bpm = 110;
+    const th = this.theme;
+    const bpm = th.bpm;
     const beatLen = 60 / bpm;
     const barLen = beatLen * 4;
     let bar = 0;
@@ -986,13 +1022,15 @@ const BGM = {
       const t = this.ctx.currentTime + 0.05;
       const chordIdx = bar % 4;
 
+      const th = this.theme;
+
       // Bass note - smooth sine
       const bassOsc = this.ctx.createOscillator();
       const bassG = this.ctx.createGain();
       bassOsc.type = 'sine';
-      bassOsc.frequency.value = this.bass[chordIdx];
-      bassG.gain.setValueAtTime(0.2, t);
-      bassG.gain.setValueAtTime(0.2, t + barLen - 0.1);
+      bassOsc.frequency.value = th.bass[chordIdx];
+      bassG.gain.setValueAtTime(th.bassVol, t);
+      bassG.gain.setValueAtTime(th.bassVol, t + barLen - 0.1);
       bassG.gain.linearRampToValueAtTime(0, t + barLen);
       bassOsc.connect(bassG); bassG.connect(this.gain);
       bassOsc.start(t); bassOsc.stop(t + barLen);
@@ -1001,15 +1039,15 @@ const BGM = {
       const subOsc = this.ctx.createOscillator();
       const subG = this.ctx.createGain();
       subOsc.type = 'sine';
-      subOsc.frequency.value = this.bass[chordIdx] / 2;
-      subG.gain.setValueAtTime(0.15, t);
-      subG.gain.setValueAtTime(0.15, t + barLen - 0.1);
+      subOsc.frequency.value = th.bass[chordIdx] / 2;
+      subG.gain.setValueAtTime(th.bassVol * 0.7, t);
+      subG.gain.setValueAtTime(th.bassVol * 0.7, t + barLen - 0.1);
       subG.gain.linearRampToValueAtTime(0, t + barLen);
       subOsc.connect(subG); subG.connect(this.gain);
       subOsc.start(t); subOsc.stop(t + barLen);
 
       // Pad chord - detuned saw pair for thickness
-      this.chords[chordIdx].forEach(freq => {
+      th.chords[chordIdx].forEach(freq => {
         for (let d = -1; d <= 1; d += 2) {
           const o = this.ctx.createOscillator();
           const g = this.ctx.createGain();
@@ -1018,10 +1056,10 @@ const BGM = {
           o.frequency.value = freq;
           o.detune.value = d * 8;
           f.type = 'lowpass';
-          f.frequency.value = 1200;
+          f.frequency.value = th.padFilter;
           g.gain.setValueAtTime(0, t);
-          g.gain.linearRampToValueAtTime(0.04, t + 0.3);
-          g.gain.setValueAtTime(0.04, t + barLen - 0.4);
+          g.gain.linearRampToValueAtTime(th.padVol, t + 0.3);
+          g.gain.setValueAtTime(th.padVol, t + barLen - 0.4);
           g.gain.linearRampToValueAtTime(0, t + barLen);
           o.connect(f); f.connect(g); g.connect(this.gain);
           o.start(t); o.stop(t + barLen + 0.1);
@@ -1029,7 +1067,7 @@ const BGM = {
       });
 
       // Arpeggio - 16th notes
-      const arpNotes = this.arps[chordIdx];
+      const arpNotes = th.arps[chordIdx];
       const stepLen = beatLen / 2;
       for (let i = 0; i < 8; i++) {
         const noteT = t + i * stepLen;
@@ -1038,7 +1076,7 @@ const BGM = {
         const g = this.ctx.createGain();
         o.type = 'triangle';
         o.frequency.value = freq;
-        const vol = (i % 2 === 0) ? 0.06 : 0.03;
+        const vol = (i % 2 === 0) ? th.arpVol : th.arpVol * 0.5;
         g.gain.setValueAtTime(0, noteT);
         g.gain.linearRampToValueAtTime(vol, noteT + 0.01);
         g.gain.exponentialRampToValueAtTime(0.001, noteT + stepLen * 0.8);
@@ -1088,6 +1126,11 @@ const BGM = {
 function initSound() {
   SFX.init();
   SFX.resume();
+  // Boost volume on mobile
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth <= 768;
+  if (isMobile) {
+    SFX.masterGain.gain.value = 0.6;
+  }
   BGM.init(SFX.ctx, SFX.masterGain);
   BGM.start();
   document.removeEventListener('click', initSound);
@@ -2462,11 +2505,23 @@ function initLevel(lvl) {
   powerups.length = 0;
   coinPool.length = 0;
   particles.length = 0;
+  // Switch BGM theme for this level
+  if (gameMode === 'endless') {
+    BGM.setTheme(Math.min(Math.floor(lvl / 2), BGM_THEMES.length - 1));
+  } else {
+    BGM.setTheme(lvl);
+  }
 }
 
 function updateLevel(dt) {
   if (levelComplete) return;
   levelTimer += dt;
+
+  if (gameMode === 'endless') {
+    updateEndlessMode(dt);
+    return;
+  }
+
   const level = LEVELS[currentLevel];
 
   for (let i = 0; i < level.waves.length; i++) {
@@ -2499,6 +2554,54 @@ function updateLevel(dt) {
       showVictory();
     }
   }
+}
+
+// ==================== ENDLESS MODE ====================
+let endlessWaveTimer = 0;
+let endlessPhase = 0;
+let endlessBossTimer = 0;
+let endlessSurviveTime = 0;
+
+const ENDLESS_ENEMIES = ['scout', 'fighter', 'tank', 'sniper', 'bomber'];
+
+function updateEndlessMode(dt) {
+  endlessSurviveTime += dt;
+  const minute = endlessSurviveTime / 60;
+
+  // Phase increases every 30 seconds, caps at 20
+  endlessPhase = Math.min(20, Math.floor(endlessSurviveTime / 30));
+
+  // Dynamic difficulty scaling
+  const hpScale = 1 + minute * 0.3;
+  const spdScale = 1 + minute * 0.1;
+  const fireScale = 1 + minute * 0.15;
+
+  // Spawn waves continuously
+  endlessWaveTimer -= dt;
+  if (endlessWaveTimer <= 0 && !bossActive && !boss) {
+    // Wave interval decreases over time (3s minimum)
+    endlessWaveTimer = Math.max(3, 6 - minute * 0.3);
+
+    // Pick enemy types based on phase
+    const availableTypes = ENDLESS_ENEMIES.slice(0, Math.min(1 + Math.floor(endlessPhase / 2), ENDLESS_ENEMIES.length));
+    const count = Math.min(8, 2 + Math.floor(endlessPhase / 3));
+
+    for (let i = 0; i < count; i++) {
+      const type = availableTypes[randInt(0, availableTypes.length - 1)];
+      const x = rand(50, W - 50);
+      spawnEnemy(type, x, -30 - i * 20, Math.round(endlessPhase * 15 + minute * 10));
+    }
+  }
+
+  // Boss every 60 seconds
+  endlessBossTimer += dt;
+  if (endlessBossTimer >= 60 && !bossActive && !boss && enemies.length === 0) {
+    endlessBossTimer = 0;
+    spawnBoss();
+  }
+
+  // Score based on survival time
+  score += dt * 10 * DIFFICULTIES[difficulty].scoreMult;
 }
 
 function spawnBoss() {
@@ -2652,7 +2755,13 @@ function drawHUD() {
   ctx.fillStyle = '#888';
   ctx.font = '12px Courier New';
   ctx.textAlign = 'left';
-  ctx.fillText(LEVELS[currentLevel]?.name || '', pad, pad + 74);
+  if (gameMode === 'endless') {
+    const mins = Math.floor(endlessSurviveTime / 60);
+    const secs = Math.floor(endlessSurviveTime % 60);
+    ctx.fillText(`无尽模式 - 存活 ${mins}:${secs.toString().padStart(2, '0')}`, pad, pad + 74);
+  } else {
+    ctx.fillText(LEVELS[currentLevel]?.name || '', pad, pad + 74);
+  }
   ctx.restore();
 
   // Difficulty indicator
@@ -2660,7 +2769,8 @@ function drawHUD() {
   ctx.fillStyle = DIFFICULTIES[difficulty].color;
   ctx.font = '11px Courier New';
   ctx.textAlign = 'left';
-  ctx.fillText(DIFFICULTIES[difficulty].name, pad, pad + 90);
+  const diffText = gameMode === 'endless' ? `${DIFFICULTIES[difficulty].name} | 阶段 ${endlessPhase}` : DIFFICULTIES[difficulty].name;
+  ctx.fillText(diffText, pad, pad + 90);
   ctx.restore();
 
   // Weapon level
@@ -2903,7 +3013,10 @@ function showScreen(id) {
 }
 
 function showDifficulty() {
+  gameMode = 'story';
   SFX.menuClick();
+  document.getElementById('diff-title').textContent = '选择难度';
+  document.getElementById('diff-subtitle').textContent = 'STORY MODE';
   showScreen('difficulty-screen');
 }
 
@@ -2924,6 +3037,11 @@ function startGame() {
   powerups.length = 0;
   coinPool.length = 0;
   particles.length = 0;
+  // Reset endless mode
+  endlessWaveTimer = 0;
+  endlessPhase = 0;
+  endlessBossTimer = 0;
+  endlessSurviveTime = 0;
   initPlayer();
   initLevel(0);
   initBackground();
@@ -2932,7 +3050,7 @@ function startGame() {
 
   // Show level banner
   const banner = document.getElementById('level-banner');
-  const level = LEVELS[0];
+  const level = gameMode === 'endless' ? { name: '无尽模式', subtitle: '生存越久，难度越高' } : LEVELS[0];
   banner.innerHTML = `<h1>${level.name}</h1><p>${level.subtitle}</p>`;
   banner.classList.remove('hidden');
   setTimeout(() => banner.classList.add('hidden'), 3000);
@@ -2945,11 +3063,17 @@ function showGameOver() {
   const earnedCoins = Math.floor(score / 20);
   coins += earnedCoins;
   saveGame();
-  document.getElementById('final-score').textContent = score.toLocaleString();
+  document.getElementById('final-score').textContent = Math.floor(score).toLocaleString();
   document.getElementById('earned-coins').textContent = earnedCoins;
   const diffEl = document.getElementById('go-diff');
-  diffEl.textContent = `难度: ${df.name}`;
-  diffEl.style.color = df.color;
+  if (gameMode === 'endless') {
+    const mins = Math.floor(endlessSurviveTime / 60);
+    const secs = Math.floor(endlessSurviveTime % 60);
+    diffEl.innerHTML = `无尽模式 | 难度: <span style="color:${df.color}">${df.name}</span> | 存活: ${mins}分${secs}秒 | 阶段 ${endlessPhase}`;
+  } else {
+    diffEl.textContent = `难度: ${df.name}`;
+    diffEl.style.color = df.color;
+  }
 }
 
 function showVictory() {
