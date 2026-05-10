@@ -7,7 +7,7 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; height: 100dvh; font-family: 'Courier New', monospace; touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
-canvas { display: block; image-rendering: pixelated; touch-action: none; }
+canvas { display: block; image-rendering: pixelated; touch-action: none; background: #000; }
 #ui-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   pointer-events: none; z-index: 10;
@@ -1847,7 +1847,11 @@ function drawEngineGlow(x, y, size, color, intensity) {
   // Outer glow
   const grad = ctx.createRadialGradient(x, y, 0, x, y, size * 2);
   grad.addColorStop(0, color);
-  grad.addColorStop(0.4, color + '88');
+  // Convert 3-char hex to 6-char before appending alpha
+  const hex6 = color.length === 4
+    ? '#' + color[1]+color[1] + color[2]+color[2] + color[3]+color[3]
+    : color;
+  grad.addColorStop(0.4, hex6 + '88');
   grad.addColorStop(1, 'transparent');
   ctx.fillStyle = grad;
   ctx.globalAlpha = intensity * flicker;
@@ -2901,6 +2905,11 @@ function gameLoop(timestamp) {
   }
 
   // Render
+  // Fill canvas before shake to prevent white edges
+  const bgLevel = LEVELS[currentLevel] || LEVELS[0];
+  ctx.fillStyle = bgLevel.bgColor;
+  ctx.fillRect(0, 0, W, H);
+
   ctx.save();
 
   // Screen shake
