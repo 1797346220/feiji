@@ -160,6 +160,13 @@ canvas { display: block; image-rendering: pixelated; touch-action: none; backgro
   background: none; border: none; font-family: 'Courier New', monospace;
 }
 .mod-close:hover { text-shadow: 0 0 10px #f44; }
+.mod-reset {
+  display: block; width: calc(100% - 24px); margin: 10px 12px 0;
+  padding: 8px 0; background: rgba(0,255,255,0.08); border: 1px solid #0ff4;
+  color: #0ff; font-size: 13px; font-family: 'Courier New', monospace;
+  cursor: pointer; border-radius: 6px; transition: all 0.2s;
+}
+.mod-reset:hover { background: rgba(0,255,255,0.2); border-color: #0ff; text-shadow: 0 0 8px #0ff; }
 
 /* Mobile controls */
 #mobile-controls {
@@ -483,6 +490,7 @@ canvas { display: block; image-rendering: pixelated; touch-action: none; backgro
     </div>
   </div>
 
+  <button class="mod-reset" onclick="resetMods()">一键还原</button>
   <div style="color:#555;font-size:10px;text-align:center;margin-top:8px;">按 C 关闭面板</div>
 </div>
 
@@ -3300,6 +3308,27 @@ function syncModUI() {
     const input = panel.querySelector(`input[oninput*="'${k}'"]`);
     if (input) input.value = mods[k];
   });
+}
+
+const DEFAULT_MODS = {
+  damage: 10, fireRate: 10, speed: 5, maxHp: 100,
+  weaponLevel: 0, bombCount: 3, energyRegen: 8,
+  bulletMult: 1, pierce: 0, bulletSpeed: 12,
+  enemyHpMult: 1, enemySpdMult: 1, dropMult: 1,
+  godMode: false, infBombs: false, autoCollect: false, scoreMult10: false
+};
+
+function resetMods() {
+  Object.assign(mods, DEFAULT_MODS);
+  syncModUI();
+  // Reset checkboxes
+  const panel = document.getElementById('mod-panel');
+  panel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+  // Apply to player if in game
+  if (gameState === 'playing' || gameState === 'paused') {
+    applyModsToPlayer();
+    player.invincible = 0;
+  }
 }
 
 function applyModsToPlayer() {
